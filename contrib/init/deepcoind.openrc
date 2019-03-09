@@ -1,0 +1,92 @@
+#!/sbin/openrc-run
+
+# backward compatibility for existing gentoo layout 
+#
+if [ -d "/var/lib/deepcoin/.deepcoin" ]; then
+	DEEPCOIND_DEFAULT_DATADIR="/var/lib/deepcoin/.deepcoin"
+else
+	DEEPCOIND_DEFAULT_DATADIR="/var/lib/deepcoind"
+fi
+
+DEEPCOIND_CONFIGFILE=${DEEPCOIND_CONFIGFILE:-/etc/deepcoin/deepcoin.conf}
+DEEPCOIND_PIDDIR=${DEEPCOIND_PIDDIR:-/var/run/deepcoind}
+DEEPCOIND_PIDFILE=${DEEPCOIND_PIDFILE:-${DEEPCOIND_PIDDIR}/deepcoind.pid}
+DEEPCOIND_DATADIR=${DEEPCOIND_DATADIR:-${DEEPCOIND_DEFAULT_DATADIR}}
+DEEPCOIND_USER=${DEEPCOIND_USER:-${DEEPCOIN_USER:-deepcoin}}
+DEEPCOIND_GROUP=${DEEPCOIND_GROUP:-deepcoin}
+DEEPCOIND_BIN=${DEEPCOIND_BIN:-/usr/bin/deepcoind}
+DEEPCOIND_NICE=${DEEPCOIND_NICE:-${NICELEVEL:-0}}
+DEEPCOIND_OPTS="${DEEPCOIND_OPTS:-${DEEPCOIN_OPTS}}"
+
+name="Deepcoin Core Daemon"
+description="Deepcoin cryptocurrency P2P network daemon"
+
+command="/usr/bin/deepcoind"
+command_args="-pid=\"${DEEPCOIND_PIDFILE}\" \
+		-conf=\"${DEEPCOIND_CONFIGFILE}\" \
+		-datadir=\"${DEEPCOIND_DATADIR}\" \
+		-daemon \
+		${DEEPCOIND_OPTS}"
+
+required_files="${DEEPCOIND_CONFIGFILE}"
+start_stop_daemon_args="-u ${DEEPCOIND_USER} \
+			-N ${DEEPCOIND_NICE} -w 2000"
+pidfile="${DEEPCOIND_PIDFILE}"
+
+# The retry schedule to use when stopping the daemon. Could be either
+# a timeout in seconds or multiple signal/timeout pairs (like
+# "SIGKILL/180 SIGTERM/300")
+retry="${DEEPCOIND_SIGTERM_TIMEOUT}"
+
+depend() {
+	need localmount net
+}
+
+# verify
+# 1) that the datadir exists and is writable (or create it)
+# 2) that a directory for the pid exists and is writable
+# 3) ownership and permissions on the config file
+start_pre() {
+	checkpath \
+	-d \
+	--mode 0750 \
+	--owner "${DEEPCOIND_USER}:${DEEPCOIND_GROUP}" \
+	"${DEEPCOIND_DATADIR}"
+
+	checkpath \
+	-d \
+	--mode 0755 \
+	--owner "${DEEPCOIND_USER}:${DEEPCOIND_GROUP}" \
+	"${DEEPCOIND_PIDDIR}"
+
+	checkpath -f \
+	-o ${DEEPCOIND_USER}:${DEEPCOIND_GROUP} \
+	-m 0660 \
+	${DEEPCOIND_CONFIGFILE}
+
+	checkconfig || return 1
+}
+
+checkconfig()
+{
+	if ! grep -qs '^rpcpassword=' "${DEEPCOIND_CONFIGFILE}" ; then
+		eerror ""
+		eerror "ERROR: You must set a secure rpcpassword to run deepcoind."
+		eerror "The setting must appear in ${DEEPCOIND_CONFIGFILE}"
+		eerror ""
+		eerror "This password is security critical to securing wallets "
+		eerror "and must not be the same as the rpcuser setting."
+		eerror "You can generate a suitable random password using the following "
+		eerror "command from the shell:"
+		eerror ""
+		eerror "bash -c 'tr -dc a-zA-Z0-9 < /dev/urandom | head -c32 && echo'"
+		eerror ""
+		eerror "It is recommended that you also set alertnotify so you are "
+		eerror "notified of problems:"
+		eerror ""
+		eerror "ie: alertnotify=echo %%s | mail -s \"Deepcoin Alert\"" \
+			"admin@foo.com"
+		eerror ""
+		return 1
+	fi
+}

@@ -1,0 +1,33 @@
+# /etc/conf.d/deepcoind: config file for /etc/init.d/deepcoind
+
+# Config file location
+#DEEPCOIND_CONFIGFILE="/etc/deepcoin/deepcoin.conf"
+
+# What directory to write pidfile to?  (created and owned by $DEEPCOIND_USER)
+#DEEPCOIND_PIDDIR="/var/run/deepcoind"
+
+# What filename to give the pidfile
+#DEEPCOIND_PIDFILE="${DEEPCOIND_PIDDIR}/deepcoind.pid"
+
+# Where to write deepcoind data (be mindful that the blockchain is large)
+#DEEPCOIND_DATADIR="/var/lib/deepcoind"
+
+# User and group to own deepcoind process
+#DEEPCOIND_USER="deepcoin"
+#DEEPCOIND_GROUP="deepcoin"
+
+# Path to deepcoind executable
+#DEEPCOIND_BIN="/usr/bin/deepcoind"
+
+# Nice value to run deepcoind under
+#DEEPCOIND_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#DEEPCOIND_OPTS=""
+
+# The timeout in seconds OpenRC will wait for deepcoind to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+DEEPCOIND_SIGTERM_TIMEOUT=60
